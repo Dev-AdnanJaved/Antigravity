@@ -348,18 +348,33 @@ async def run():
                         if symbol in pump_recorder.active_symbols:
                             await pump_recorder.update(symbol, signals)
 
-                        # collect alert candidates
+                        # collect alert candidates (with convergence check)
                         if classification in ("CRITICAL", "HIGH_ALERT"):
-                            alert_candidates.append({
-                                "symbol": symbol,
-                                "score": composite_score,
-                                "classification": classification,
-                                "state": state,
-                                "levels": score_result.get("levels", {}),
-                                "signals": signals,
-                                "score_result": score_result,
-                                "pump_info": pump_info,
-                            })
+                            # Quality gate: require multiple signals agreeing
+                            # A real pump shows convergence across indicators,
+                            # not one signal spiking while others are dead.
+                            strong_signals = sum(
+                                1 for v in signals.values()
+                                if v is not None and v >= 20
+                            )
+                            if strong_signals >= 3:
+                                alert_candidates.append({
+                                    "symbol": symbol,
+                                    "score": composite_score,
+                                    "classification": classification,
+                                    "state": state,
+                                    "levels": score_result.get("levels", {}),
+                                    "signals": signals,
+                                    "score_result": score_result,
+                                    "pump_info": pump_info,
+                                })
+                            else:
+                                logger.info(
+                                    "alert_filtered_low_convergence",
+                                    symbol=symbol,
+                                    score=round(composite_score, 1),
+                                    strong_signals=strong_signals,
+                                )
 
                         # update leaderboard
                         try:

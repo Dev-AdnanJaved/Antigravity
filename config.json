@@ -58,7 +58,7 @@
     "chat_id": "",
     "alert_on_pump": true,
     "alert_on_prediction": true,
-    "alert_min_score": 60,
+    "alert_min_score": 30,
     "commands_enabled": true,
     "rate_limit_seconds": 900
   },
@@ -101,10 +101,10 @@
       "accumulation_setup": 0.20
     },
     "classification": {
-      "critical": 78,
-      "high_alert": 62,
-      "watchlist": 48,
-      "monitor": 33
+      "critical": 45,
+      "high_alert": 35,
+      "watchlist": 20,
+      "monitor": 12
     },
     "price_extended_penalty": {
       "threshold_pct": 15.0,
@@ -152,7 +152,7 @@
     "risk_off_multiplier": 0.6,
     "neutral_multiplier": 1.0,
     "volatility_expansion_multiplier": 0.8,
-    "low_liquidity_multiplier": 0.7,
+    "low_liquidity_multiplier": 0.85,
     "btc_trend_lookback_hours": 4,
     "btc_volatility_lookback": 20,
     "regime_update_interval_seconds": 300
@@ -214,7 +214,7 @@
     "max_concurrent_positions": 3,
     "max_position_pct_of_volume": 1.0,
     "max_single_position_pct": 33.0,
-    "min_score_for_allocation": 60.0,
+    "min_score_for_allocation": 25.0,
     "volatility_normalize": true,
     "correlation_sector_limit": 2,
     "drawdown_scale_factor": 0.5
