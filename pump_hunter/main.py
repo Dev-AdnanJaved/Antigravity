@@ -249,6 +249,17 @@ async def run():
                 scanned_count = 0
                 skipped_no_data = 0
                 symbol_errors = 0
+                error_types: Dict[str, int] = {}
+
+                # hoist DB symbol lookup outside per-symbol loop
+                # (was 501 DB round-trips per scan — now just 1)
+                try:
+                    db_symbols = await db.get_active_symbols()
+                    db_symbol_map = {s.symbol: s.id for s in db_symbols}
+                except Exception as e:
+                    logger.warning("db_symbol_lookup_failed", error=str(e))
+                    db_symbol_map = {}
+
                 for symbol in symbols:
                     try:
                         state = market_state.get_state(symbol)
@@ -302,29 +313,29 @@ async def run():
                         prev_scores[symbol] = composite_score
                         prev_classes[symbol] = classification
 
-                        # store signal score in DB
-                        db_symbols = await db.get_active_symbols()
-                        symbol_id = next(
-                            (s.id for s in db_symbols if s.symbol == symbol), None
-                        )
+                        # store signal score in DB (use pre-fetched map)
+                        symbol_id = db_symbol_map.get(symbol)
                         if symbol_id:
-                            await db.insert_signal_score({
-                                "symbol_id": symbol_id,
-                                "composite_score": composite_score,
-                                "classification": classification,
-                                "oi_surge": signals.get("oi_surge"),
-                                "funding_rate": signals.get("funding_rate"),
-                                "liquidation_leverage": signals.get("liquidation_leverage"),
-                                "cross_exchange_volume": signals.get("cross_exchange_volume"),
-                                "depth_imbalance": signals.get("depth_imbalance"),
-                                "volume_price_decouple": signals.get("volume_price_decouple"),
-                                "volatility_compression": signals.get("volatility_compression"),
-                                "long_short_ratio": signals.get("long_short_ratio"),
-                                "futures_spot_divergence": signals.get("futures_spot_divergence"),
-                                "whale_activity": signals.get("whale_activity"),
-                                "bonuses_applied": score_result.get("bonuses_applied", {}),
-                                "penalties_applied": score_result.get("penalties_applied", {}),
-                            })
+                            try:
+                                await db.insert_signal_score({
+                                    "symbol_id": symbol_id,
+                                    "composite_score": composite_score,
+                                    "classification": classification,
+                                    "oi_surge": signals.get("oi_surge"),
+                                    "funding_rate": signals.get("funding_rate"),
+                                    "liquidation_leverage": signals.get("liquidation_leverage"),
+                                    "cross_exchange_volume": signals.get("cross_exchange_volume"),
+                                    "depth_imbalance": signals.get("depth_imbalance"),
+                                    "volume_price_decouple": signals.get("volume_price_decouple"),
+                                    "volatility_compression": signals.get("volatility_compression"),
+                                    "long_short_ratio": signals.get("long_short_ratio"),
+                                    "futures_spot_divergence": signals.get("futures_spot_divergence"),
+                                    "whale_activity": signals.get("whale_activity"),
+                                    "bonuses_applied": score_result.get("bonuses_applied", {}),
+                                    "penalties_applied": score_result.get("penalties_applied", {}),
+                                })
+                            except Exception:
+                                pass  # non-critical: scoring still works without DB write
 
                         # check for pump event
                         pump_info = pump_detector.detect_pump(state)
@@ -351,7 +362,10 @@ async def run():
                             })
 
                         # update leaderboard
-                        await redis.set_score(symbol, composite_score)
+                        try:
+                            await redis.set_score(symbol, composite_score)
+                        except Exception:
+                            pass  # non-critical
 
                         # record feature values for drift monitoring
                         if drift_monitor:
@@ -359,8 +373,10 @@ async def run():
 
                     except Exception as e:
                         symbol_errors += 1
-                        if symbol_errors <= 3:  # only log first 3 errors to avoid spam
-                            logger.warning("symbol_scan_error", symbol=symbol, error=str(e), error_type=type(e).__name__)
+                        err_type = type(e).__name__
+                        error_types[err_type] = error_types.get(err_type, 0) + 1
+                        if symbol_errors <= 5:  # log first 5 with full details
+                            logger.warning("symbol_scan_error", symbol=symbol, error=str(e), error_type=err_type)
 
                 # --- TAIL RISK CHECK (before execution) ---
                 btc_state = market_state.get_state("BTCUSDT")
@@ -458,7 +474,13 @@ async def run():
                 # log scan summary (every scan for first 10, then every 5th)
                 if scan_count <= 10 or scan_count % 5 == 0 or alert_count > 0:
                     top = sorted(prev_scores.items(), key=lambda x: x[1], reverse=True)[:5]
+                    top = [(k, round(float(v), 1)) for k, v in top]  # cast np.float64 → float
                     ws_stats = binance_ws.get_stats()
+
+                    # log error type distribution if any errors occurred
+                    if symbol_errors > 0:
+                        logger.warning("error_summary", total=symbol_errors, types=error_types)
+
                     logger.info(
                         "scan_complete",
                         scan=scan_count,
@@ -468,7 +490,7 @@ async def run():
                         alerts=alert_count,
                         duration=f"{scan_duration:.1f}s",
                         regime=regime_engine.current_regime.value,
-                        top_5={k: round(v, 1) for k, v in top},
+                        top_5={k: v for k, v in top},
                         ws_msgs=ws_stats.get("messages_total", 0),
                         active_pumps=len(pump_recorder.active_symbols),
                         kill_switch=execution_sim.is_killed,

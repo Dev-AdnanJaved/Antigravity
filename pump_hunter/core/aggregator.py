@@ -17,6 +17,21 @@ from pump_hunter.storage.redis_store import RedisStore
 logger = structlog.get_logger(__name__)
 
 
+def _sanitize_for_json(obj):
+    """Recursively convert numpy types to native Python for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return type(obj)(_sanitize_for_json(x) for x in obj)
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
+
+
 class Aggregator:
     """
     Combines single-exchange and cross-exchange data into unified metrics.
@@ -105,6 +120,9 @@ class Aggregator:
             result["price_spread_pct"] = 0
 
         result["prices_by_exchange"] = prices
+
+        # sanitize numpy types before Redis caching (prevents orjson errors)
+        result = _sanitize_for_json(result)
 
         # cache aggregated state in Redis
         await self.redis.set_market_state(symbol, result)

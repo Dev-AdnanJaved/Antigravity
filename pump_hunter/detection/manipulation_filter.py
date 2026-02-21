@@ -72,40 +72,58 @@ class ManipulationFilter:
         results = {}
 
         # 1. Spoof detection
-        spoof = self._check_spoof(symbol, state)
-        if spoof["detected"]:
-            multiplier *= 0.5
-            results["spoof"] = spoof
+        try:
+            spoof = self._check_spoof(symbol, state)
+            if spoof["detected"]:
+                multiplier *= 0.5
+                results["spoof"] = spoof
+        except Exception:
+            pass
 
         # 2. Fake breakout
-        fake_bo = self._check_fake_breakout(symbol)
-        if fake_bo["detected"]:
-            multiplier *= 0.4
-            results["fake_breakout"] = fake_bo
+        try:
+            fake_bo = self._check_fake_breakout(symbol)
+            if fake_bo["detected"]:
+                multiplier *= 0.4
+                results["fake_breakout"] = fake_bo
+        except Exception:
+            pass
 
         # 3. Pump-and-dump pattern
-        pnd = self._check_pump_dump(symbol, state, signals)
-        if pnd["detected"]:
-            multiplier *= 0.3
-            results["pump_dump"] = pnd
+        try:
+            pnd = self._check_pump_dump(symbol, state, signals)
+            if pnd["detected"]:
+                multiplier *= 0.3
+                results["pump_dump"] = pnd
+        except Exception:
+            pass
 
         # 4. Thin book trap
-        thin = self._check_thin_book(state)
-        if thin["detected"]:
-            multiplier *= 0.5
-            results["thin_book"] = thin
+        try:
+            thin = self._check_thin_book(state)
+            if thin["detected"]:
+                multiplier *= 0.5
+                results["thin_book"] = thin
+        except Exception:
+            pass
 
         # 5. Coordinated activity
-        coord = self._check_coordinated(symbol, base_score)
-        if coord["detected"]:
-            multiplier *= 0.6
-            results["coordinated"] = coord
+        try:
+            coord = self._check_coordinated(symbol, base_score)
+            if coord["detected"]:
+                multiplier *= 0.6
+                results["coordinated"] = coord
+        except Exception:
+            pass
 
         # 6. Reversal probability
-        reversal = self._check_reversal(symbol, state)
-        if reversal["probability"] > 0.3:
-            multiplier *= (1.0 - reversal["probability"])
-            results["reversal"] = reversal
+        try:
+            reversal = self._check_reversal(symbol, state)
+            if reversal["probability"] > 0.3:
+                multiplier *= (1.0 - reversal["probability"])
+                results["reversal"] = reversal
+        except Exception:
+            pass
 
         adjusted = base_score * max(multiplier, 0.1)  # floor at 10% of original
 

@@ -6,6 +6,7 @@ Fixes all known issues from previous project (OI always 100, liq always 100, etc
 
 from __future__ import annotations
 
+import asyncio
 import math
 from typing import Dict, List, Optional, Tuple
 
@@ -71,19 +72,32 @@ class FeatureEngine:
         """
         Compute all signal features for a symbol.
         Returns dict of signal_name -> score (0-100 or None if unreliable).
+        Each signal is wrapped in try/except so a single failure returns None
+        instead of crashing the entire symbol's scan.
         """
         signals = {}
 
-        signals["oi_surge"] = await self._oi_surge(symbol, state, aggregated)
-        signals["funding_rate"] = self._funding_rate(state)
-        signals["liquidation_leverage"] = self._liquidation_leverage(state, aggregated)
-        signals["cross_exchange_volume"] = self._cross_exchange_volume(aggregated)
-        signals["depth_imbalance"] = self._depth_imbalance(state)
-        signals["volume_price_decouple"] = self._volume_price_decouple(symbol)
-        signals["volatility_compression"] = self._volatility_compression(symbol)
-        signals["long_short_ratio"] = self._long_short_ratio(state)
-        signals["futures_spot_divergence"] = self._futures_spot_divergence(symbol)
-        signals["whale_activity"] = self._whale_activity(state)
+        signal_fns = [
+            ("oi_surge", self._oi_surge, (symbol, state, aggregated)),
+            ("funding_rate", self._funding_rate, (state,)),
+            ("liquidation_leverage", self._liquidation_leverage, (state, aggregated)),
+            ("cross_exchange_volume", self._cross_exchange_volume, (aggregated,)),
+            ("depth_imbalance", self._depth_imbalance, (state,)),
+            ("volume_price_decouple", self._volume_price_decouple, (symbol,)),
+            ("volatility_compression", self._volatility_compression, (symbol,)),
+            ("long_short_ratio", self._long_short_ratio, (state,)),
+            ("futures_spot_divergence", self._futures_spot_divergence, (symbol,)),
+            ("whale_activity", self._whale_activity, (state,)),
+        ]
+
+        for name, fn, args in signal_fns:
+            try:
+                result = fn(*args)
+                if asyncio.iscoroutine(result):
+                    result = await result
+                signals[name] = result
+            except Exception:
+                signals[name] = None
 
         return signals
 
