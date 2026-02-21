@@ -257,6 +257,7 @@ async def run():
                             continue
 
                         scanned_count += 1
+                        logger.info("scanning", symbol=symbol, progress=f"{scanned_count}/{len(symbols)}")
 
                         # record depth for spoof detection
                         manipulation_filter.record_depth_snapshot(
