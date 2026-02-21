@@ -246,11 +246,17 @@ async def run():
 
                 # process each symbol
                 alert_count = 0
+                scanned_count = 0
+                skipped_no_data = 0
+                symbol_errors = 0
                 for symbol in symbols:
                     try:
                         state = market_state.get_state(symbol)
                         if state.price <= 0 or state.last_update <= 0:
+                            skipped_no_data += 1
                             continue
+
+                        scanned_count += 1
 
                         # record depth for spoof detection
                         manipulation_filter.record_depth_snapshot(
@@ -342,6 +348,7 @@ async def run():
                             drift_monitor.record_features(signals)
 
                     except Exception as e:
+                        symbol_errors += 1
                         logger.debug("symbol_scan_error", symbol=symbol, error=str(e))
 
                 # --- TAIL RISK CHECK (before execution) ---
@@ -440,17 +447,19 @@ async def run():
                 # log scan summary (every scan for first 10, then every 5th)
                 if scan_count <= 10 or scan_count % 5 == 0 or alert_count > 0:
                     top = sorted(prev_scores.items(), key=lambda x: x[1], reverse=True)[:5]
+                    ws_stats = binance_ws.get_stats()
                     logger.info(
                         "scan_complete",
                         scan=scan_count,
-                        symbols=len(symbols),
+                        scanned=scanned_count,
+                        skipped_no_data=skipped_no_data,
+                        errors=symbol_errors,
                         alerts=alert_count,
                         duration=f"{scan_duration:.1f}s",
                         regime=regime_engine.current_regime.value,
-                        top_scores={k: round(v, 1) for k, v in top},
+                        top_5={k: round(v, 1) for k, v in top},
+                        ws_msgs=ws_stats.get("messages_total", 0),
                         active_pumps=len(pump_recorder.active_symbols),
-                        positions=capital_alloc.active_count,
-                        paper_positions=paper_trader.active_count if paper_trader else 0,
                         kill_switch=execution_sim.is_killed,
                     )
 

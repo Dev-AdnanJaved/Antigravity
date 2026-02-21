@@ -245,6 +245,9 @@ class MarketStateManager:
         if price_data:
             state.price = price_data.get("price", state.price)
             state.change_pct_24h = price_data.get("change_pct", state.change_pct_24h)
+            if state.price > 0:
+                state.last_update = time.time()
+                state._price_history.append((state.last_update, state.price))
 
         oi_data = await self.redis.get_open_interest(symbol)
         if oi_data:
