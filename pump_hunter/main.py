@@ -37,7 +37,7 @@ logger = structlog.get_logger("pump_hunter")
 
 async def run():
     """Main async entry point."""
-    from pump_hunter.config.settings import load_settings, Settings
+    from pump_hunter.config.settings import get_settings, Settings
     from pump_hunter.storage.database import Database
     from pump_hunter.storage.redis_store import RedisStore
     from pump_hunter.storage.timeseries import TimeseriesStore
@@ -61,7 +61,7 @@ async def run():
     from pump_hunter.ml.feature_drift import FeatureDriftMonitor
 
     # ── load config ──────────────────────────────────────────────
-    settings = load_settings()
+    settings = get_settings()
     logger.info(
         "config_loaded",
         exchange=settings.exchanges.primary,
