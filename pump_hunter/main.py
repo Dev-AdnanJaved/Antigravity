@@ -349,7 +349,8 @@ async def run():
 
                     except Exception as e:
                         symbol_errors += 1
-                        logger.debug("symbol_scan_error", symbol=symbol, error=str(e))
+                        if symbol_errors <= 3:  # only log first 3 errors to avoid spam
+                            logger.warning("symbol_scan_error", symbol=symbol, error=str(e), error_type=type(e).__name__)
 
                 # --- TAIL RISK CHECK (before execution) ---
                 btc_state = market_state.get_state("BTCUSDT")
