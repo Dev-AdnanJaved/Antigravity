@@ -133,7 +133,7 @@ class BinanceWebSocket:
                 async with websockets.connect(
                     url,
                     ping_interval=self.settings.websocket.ping_interval_seconds,
-                    ping_timeout=30,
+                    ping_timeout=60,
                     max_size=10 * 1024 * 1024,  # 10MB
                     close_timeout=5,
                 ) as ws:
@@ -156,7 +156,7 @@ class BinanceWebSocket:
 
             except ConnectionClosed as e:
                 self._reconnect_count += 1
-                logger.warning(
+                logger.debug(
                     "ws_disconnected",
                     conn_id=conn_id,
                     code=e.code,
