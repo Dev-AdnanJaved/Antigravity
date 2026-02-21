@@ -73,8 +73,7 @@ async def run():
     db = Database(settings)
     redis = RedisStore(settings)
     timeseries = TimeseriesStore(
-        max_candles=settings.general.max_candles_per_symbol,
-        exchanges=["binance"] + settings.exchanges.secondary,
+        max_candles=settings.general.bootstrap_candles,
     )
 
     # collectors
@@ -135,8 +134,8 @@ async def run():
     try:
         logger.info("starting_services")
 
-        await db.start()
-        await redis.start()
+        await db.connect()
+        await redis.connect()
         await notifier.start()
 
         # register notifier callbacks
@@ -316,7 +315,7 @@ async def run():
                             })
 
                         # update leaderboard
-                        await redis.update_leaderboard("ph:leaderboard:score", symbol, composite_score)
+                        await redis.set_score(symbol, composite_score)
 
                         # record feature values for drift monitoring
                         if drift_monitor:
@@ -453,8 +452,8 @@ async def run():
         await binance_rest.stop()
         await multi_exchange.stop()
         await notifier.stop()
-        await redis.stop()
-        await db.stop()
+        await redis.disconnect()
+        await db.disconnect()
         logger.info(
             "shutdown_complete",
             total_scans=scan_count,
