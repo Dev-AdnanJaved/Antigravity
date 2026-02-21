@@ -1,0 +1,232 @@
+{
+  "general": {
+    "scan_interval_seconds": 60,
+    "bootstrap_on_start": true,
+    "bootstrap_candles": 500,
+    "bootstrap_oi_points": 200,
+    "log_level": "INFO",
+    "timezone": "UTC",
+    "data_retention_days": 30
+  },
+  "exchanges": {
+    "primary": "binance",
+    "secondary": [
+      "bybit",
+      "okx",
+      "bitget"
+    ],
+    "use_testnet": false
+  },
+  "api_keys": {
+    "binance": {
+      "key": "",
+      "secret": ""
+    },
+    "bybit": {
+      "key": "",
+      "secret": ""
+    },
+    "okx": {
+      "key": "",
+      "secret": "",
+      "passphrase": ""
+    },
+    "bitget": {
+      "key": "",
+      "secret": "",
+      "passphrase": ""
+    }
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "pump_hunter",
+    "user": "pump_hunter",
+    "password": "pump_hunter_pass",
+    "pool_min": 5,
+    "pool_max": 20
+  },
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "db": 0,
+    "password": ""
+  },
+  "telegram": {
+    "enabled": true,
+    "bot_token": "",
+    "chat_id": "",
+    "alert_on_pump": true,
+    "alert_on_prediction": true,
+    "alert_min_score": 60,
+    "commands_enabled": true,
+    "rate_limit_seconds": 900
+  },
+  "filters": {
+    "min_volume_24h_usd": 500000,
+    "min_open_interest_usd": 100000,
+    "min_market_cap_usd": 0,
+    "min_orderbook_depth_usd": 10000,
+    "excluded_symbols": [
+      "USDCUSDT"
+    ],
+    "only_symbols": []
+  },
+  "detection": {
+    "pump_threshold_pct": 10.0,
+    "pump_max_pct": 60.0,
+    "pump_window_minutes": 60,
+    "pre_pump_capture_minutes": 60,
+    "post_pump_capture_minutes": 120,
+    "pump_threshold_mode": "atr_adaptive",
+    "atr_adaptive_high_percentile": 80.0,
+    "atr_adaptive_low_percentile": 20.0,
+    "atr_adaptive_high_mult": 2.0,
+    "atr_adaptive_low_mult": 0.5,
+    "score_weights": {
+      "oi_surge": 0.16,
+      "funding_rate": 0.15,
+      "liquidation_leverage": 0.13,
+      "cross_exchange_volume": 0.12,
+      "depth_imbalance": 0.11,
+      "volume_price_decouple": 0.09,
+      "volatility_compression": 0.08,
+      "long_short_ratio": 0.06,
+      "futures_spot_divergence": 0.05,
+      "whale_activity": 0.05
+    },
+    "interaction_bonuses": {
+      "squeeze_setup": 0.25,
+      "cascade_setup": 0.30,
+      "accumulation_setup": 0.20
+    },
+    "classification": {
+      "critical": 78,
+      "high_alert": 62,
+      "watchlist": 48,
+      "monitor": 33
+    },
+    "price_extended_penalty": {
+      "threshold_pct": 15.0,
+      "lookback_days": 7,
+      "penalty_pct": 40.0
+    }
+  },
+  "levels": {
+    "stop_loss_min_pct": 2.5,
+    "stop_loss_max_pct": 15.0,
+    "atr_period": 14,
+    "tp_multipliers": [
+      3.0,
+      5.5,
+      9.0
+    ],
+    "trail_schedule": {
+      "5": 0,
+      "10": 5,
+      "15": 10,
+      "25": 18,
+      "40": 30,
+      "60": 45
+    }
+  },
+  "ml": {
+    "enabled": false,
+    "model_type": "xgboost",
+    "min_training_samples": 50,
+    "retrain_interval_hours": 24,
+    "prediction_threshold": 0.7,
+    "feature_window_minutes": 60,
+    "model_path": "models/"
+  },
+  "websocket": {
+    "max_streams_per_connection": 200,
+    "reconnect_delay_seconds": 5,
+    "ping_interval_seconds": 20,
+    "stale_timeout_seconds": 60
+  },
+  "regime": {
+    "enabled": true,
+    "btc_symbol": "BTCUSDT",
+    "risk_on_multiplier": 1.2,
+    "risk_off_multiplier": 0.6,
+    "neutral_multiplier": 1.0,
+    "volatility_expansion_multiplier": 0.8,
+    "low_liquidity_multiplier": 0.7,
+    "btc_trend_lookback_hours": 4,
+    "btc_volatility_lookback": 20,
+    "regime_update_interval_seconds": 300
+  },
+  "manipulation": {
+    "enabled": true,
+    "spoof_cancel_rate_threshold": 0.8,
+    "spoof_check_window_seconds": 5,
+    "fake_breakout_revert_candles": 3,
+    "fake_breakout_revert_pct": 80.0,
+    "pump_dump_oi_threshold": 0.5,
+    "thin_book_threshold_usd": 5000,
+    "coordinated_window_minutes": 5,
+    "coordinated_min_coins": 3,
+    "reversal_rsi_threshold": 80.0,
+    "reversal_volume_exhaustion_pct": 50.0
+  },
+  "execution": {
+    "enabled": true,
+    "paper_trading": true,
+    "default_trade_size_usd": 1000,
+    "max_slippage_pct": 0.5,
+    "latency_ms": 200,
+    "kelly_fraction": 0.25,
+    "kill_switch_consecutive_losses": 3,
+    "kill_switch_drawdown_pct": 5.0,
+    "kill_switch_cooldown_minutes": 60,
+    "entry_mode": "adaptive",
+    "pullback_wait_pct": 0.5,
+    "pullback_timeout_seconds": 30,
+    "tail_risk_btc_crash_pct": 3.0,
+    "tail_risk_btc_crash_window_min": 5,
+    "tail_risk_mark_dislocation_pct": 2.0,
+    "tail_risk_api_error_threshold": 0.5,
+    "tail_risk_api_error_window": 100,
+    "tail_risk_funding_spike_pct": 0.3,
+    "tail_risk_liq_cascade_count": 3,
+    "tail_risk_liq_cascade_window_sec": 60
+  },
+  "survival": {
+    "min_events_for_analysis": 20,
+    "retrace_thresholds": [
+      25.0,
+      50.0,
+      75.0
+    ],
+    "optimal_entry_delay_minutes": 2.0,
+    "peak_time_bins_minutes": [
+      5,
+      15,
+      30,
+      60,
+      120,
+      240
+    ],
+    "update_interval_hours": 6
+  },
+  "allocation": {
+    "max_concurrent_positions": 3,
+    "max_position_pct_of_volume": 1.0,
+    "max_single_position_pct": 33.0,
+    "min_score_for_allocation": 60.0,
+    "volatility_normalize": true,
+    "correlation_sector_limit": 2,
+    "drawdown_scale_factor": 0.5
+  },
+  "drift": {
+    "enabled": true,
+    "update_interval_minutes": 60,
+    "psi_moderate_threshold": 0.1,
+    "psi_significant_threshold": 0.25,
+    "psi_bins": 10,
+    "auc_decay_threshold": 0.05,
+    "baseline_lookback_days": 30,
+    "regime_stratified": true
+  }
+}
