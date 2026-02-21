@@ -197,6 +197,18 @@ async def run():
         # let WS data flow in
         logger.info("warming_up", seconds=10)
         await asyncio.sleep(10)
+        # ── send startup notification ─────────────────────────────
+        startup_msg = (
+            "🟢 *PUMP HUNTER v1.0 — ONLINE*\n\n"
+            f"📊 Symbols: *{len(symbols)}*\n"
+            f"🔗 Exchanges: Binance + {', '.join(settings.exchanges.secondary)}\n"
+            f"⏱ Scan interval: *{settings.general.scan_interval_seconds}s*\n"
+            f"🤖 ML: *{'Enabled' if settings.ml.enabled else 'Disabled'}*\n"
+            f"📝 Paper trading: *{'On' if settings.execution.paper_trading else 'Off'}*\n"
+            f"⏰ Started: {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+        )
+        await notifier._send(startup_msg)
+        logger.info("startup_notification_sent")
 
         # ── main scan loop ───────────────────────────────────────
         logger.info("scan_loop_started", interval=settings.general.scan_interval_seconds)
@@ -417,8 +429,8 @@ async def run():
 
                 scan_duration = time.time() - scan_start
 
-                # log scan summary
-                if scan_count % 10 == 0 or alert_count > 0:
+                # log scan summary (every scan for first 10, then every 5th)
+                if scan_count <= 10 or scan_count % 5 == 0 or alert_count > 0:
                     top = sorted(prev_scores.items(), key=lambda x: x[1], reverse=True)[:5]
                     logger.info(
                         "scan_complete",
