@@ -311,9 +311,18 @@ async def run():
                                 "symbol_id": symbol_id,
                                 "composite_score": composite_score,
                                 "classification": classification,
-                                "scores": {k: v for k, v in signals.items() if v is not None},
-                                "bonuses": score_result.get("bonuses_applied", {}),
-                                "penalties": score_result.get("penalties_applied", {}),
+                                "oi_surge": signals.get("oi_surge"),
+                                "funding_rate": signals.get("funding_rate"),
+                                "liquidation_leverage": signals.get("liquidation_leverage"),
+                                "cross_exchange_volume": signals.get("cross_exchange_volume"),
+                                "depth_imbalance": signals.get("depth_imbalance"),
+                                "volume_price_decouple": signals.get("volume_price_decouple"),
+                                "volatility_compression": signals.get("volatility_compression"),
+                                "long_short_ratio": signals.get("long_short_ratio"),
+                                "futures_spot_divergence": signals.get("futures_spot_divergence"),
+                                "whale_activity": signals.get("whale_activity"),
+                                "bonuses_applied": score_result.get("bonuses_applied", {}),
+                                "penalties_applied": score_result.get("penalties_applied", {}),
                             })
 
                         # check for pump event
