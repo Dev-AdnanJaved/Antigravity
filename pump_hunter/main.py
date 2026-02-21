@@ -120,11 +120,19 @@ async def run():
     start_time = time.time()
     prev_scores: Dict[str, float] = {}
     prev_classes: Dict[str, str] = {}
+    shutdown_event = asyncio.Event()
 
     # ── graceful shutdown ────────────────────────────────────────
+    loop = asyncio.get_running_loop()
+
     def handle_signal(*_):
         nonlocal running
+        if not running:
+            # Second Ctrl+C: force exit
+            logger.warning("force_shutdown")
+            sys.exit(1)
         running = False
+        shutdown_event.set()
         logger.info("shutdown_signal_received")
 
     signal.signal(signal.SIGINT, handle_signal)
@@ -449,10 +457,15 @@ async def run():
             except Exception as e:
                 logger.error("scan_error", scan=scan_count, error=str(e))
 
-            # sleep until next scan
+            # sleep until next scan (interruptible by shutdown)
             elapsed = time.time() - scan_start
             sleep_time = max(1, settings.general.scan_interval_seconds - elapsed)
-            await asyncio.sleep(sleep_time)
+            try:
+                await asyncio.wait_for(shutdown_event.wait(), timeout=sleep_time)
+                # event was set → shutdown requested
+                break
+            except asyncio.TimeoutError:
+                pass  # normal: scan interval elapsed, continue loop
 
     except KeyboardInterrupt:
         pass
