@@ -7,10 +7,18 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import os
 import signal
 import sys
 import time
 from typing import Dict, List, Optional
+
+# Ensure the parent directory is on sys.path so that
+# `from pump_hunter.xxx import ...` works when running `python main.py`
+# from inside the pump_hunter directory.
+_parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _parent not in sys.path:
+    sys.path.insert(0, _parent)
 
 import structlog
 
